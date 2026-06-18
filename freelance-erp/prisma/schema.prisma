@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  company       String?
+  plan          String    @default("FREE") // FREE, PRO
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Consultant {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  role       String   // Dev, Design, Marketing, etc.
+  skills     String   // JSON array stored as string
+  dailyRate  Float    @default(500)
+  avatar     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  timesheets Timesheet[]
+  projects   ProjectConsultant[]
+}
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  company     String?
+  phone       String?
+  portalToken String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects    Project[]
+  invoices    Invoice[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, CANCELLED
+  type        String   @default("HOURLY") // HOURLY, FIXED
+  budget      Float?
+  startDate   DateTime
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id])
+  timesheets  Timesheet[]
+  consultants ProjectConsultant[]
+  invoices    Invoice[]
+}
+
+model ProjectConsultant {
+  id           String @id @default(cuid())
+  projectId    String
+  consultantId String
+  project      Project    @relation(fields: [projectId], references: [id])
+  consultant   Consultant @relation(fields: [consultantId], references: [id])
+
+  @@unique([projectId, consultantId])
+}
+
+model Timesheet {
+  id           String   @id @default(cuid())
+  date         DateTime
+  hours        Float
+  description  String?
+  createdAt    DateTime @default(now())
+
+  projectId    String
+  consultantId String
+  project      Project    @relation(fields: [projectId], references: [id])
+  consultant   Consultant @relation(fields: [consultantId], references: [id])
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  status      String   @default("DRAFT") // DRAFT, SENT, PAID, OVERDUE
+  amount      Float
+  tax         Float    @default(20)
+  dueDate     DateTime
+  issuedDate  DateTime @default(now())
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clientId    String
+  projectId   String?
+  client      Client   @relation(fields: [clientId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
+
+  items       InvoiceItem[]
+  reminders   Reminder[]
+}
+
+model Reminder {
+  id          String   @id @default(cuid())
+  level       Int      @default(1) // 1 = rappel poli, 2 = relance ferme, 3 = mise en demeure
+  sentAt      DateTime @default(now())
+  daysOverdue Int
+
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Float
+  unitPrice   Float
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
