@@ -15,19 +15,78 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [otpStep, setOtpStep] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [otpError, setOtpError] = useState('')
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const res = await signIn('credentials', { email, password, redirect: false })
+
+    const res = await fetch('/api/otp/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+
+    const data = await res.json()
     setLoading(false)
-    if (res?.error) {
-      setError('Email ou mot de passe incorrect')
+
+    if (!res.ok) {
+      setError(data.error || 'Impossible d’envoyer le code')
       return
     }
+
+    setOtpStep(true)
+    setOtpError('')
+  }
+
+  const verifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setOtpError('')
+    setOtpLoading(true)
+
+    const res = await fetch('/api/otp/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code: otpCode }),
+    })
+
+    const data = await res.json()
+    setOtpLoading(false)
+
+    if (!res.ok) {
+      setOtpError(data.error || 'Code invalide')
+      return
+    }
+
+    const authRes = await signIn('credentials', { email, password, redirect: false })
+    if (authRes?.error) {
+      setOtpError('La vérification a réussi, mais la connexion a échoué')
+      return
+    }
+
     router.push(callbackUrl)
     router.refresh()
+  }
+
+  const resendOtp = async () => {
+    setOtpError('')
+    setLoading(true)
+
+    const res = await fetch('/api/otp/resend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+
+    setLoading(false)
+    if (!res.ok) {
+      const data = await res.json()
+      setOtpError(data.error || 'Impossible de renvoyer le code')
+    }
   }
 
   return (
@@ -44,53 +103,90 @@ function LoginForm() {
           <h1 className="text-xl font-bold text-gray-900 mb-1">Connexion</h1>
           <p className="text-sm text-gray-500 mb-6">Heureux de vous revoir.</p>
 
-          {error && (
+          {(error || otpError) && (
             <div className="flex items-start gap-2 bg-red-50 text-red-700 text-sm rounded-xl px-3 py-2.5 mb-5">
               <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <span>{error}</span>
+              <span>{error || otpError}</span>
             </div>
           )}
 
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-              <input
-                type="email"
-                required
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"
-                placeholder="vous@agence.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe</label>
-              <div className="relative">
+          {otpStep ? (
+            <form onSubmit={verifyOtp} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Code de vérification</label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   required
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm pr-10"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  maxLength={6}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm tracking-[0.35em] text-center"
+                  placeholder="123456"
+                  value={otpCode}
+                  onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(s => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Un code à 6 chiffres a été envoyé à {email}.
+                </p>
               </div>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-60"
-            >
-              {loading ? 'Connexion…' : 'Se connecter'}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={otpLoading || otpCode.length !== 6}
+                className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-60"
+              >
+                {otpLoading ? 'Vérification…' : 'Vérifier le code'}
+              </button>
+              <button
+                type="button"
+                onClick={resendOtp}
+                disabled={loading}
+                className="w-full text-sm text-violet-600 font-medium hover:underline disabled:opacity-60"
+              >
+                {loading ? 'Envoi…' : 'Renvoyer le code'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={submit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  required
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm"
+                  placeholder="vous@agence.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm pr-10"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(s => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-violet-600 hover:bg-violet-700 text-white py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-60"
+              >
+                {loading ? 'Connexion…' : 'Se connecter'}
+              </button>
+            </form>
+          )}
 
           <p className="text-sm text-gray-500 text-center mt-6">
             Pas encore de compte ?{' '}

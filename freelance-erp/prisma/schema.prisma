@@ -16,6 +16,21 @@ model User {
   plan          String    @default("FREE") // FREE, PRO
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  otpCodes      OtpCode[]
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [email], references: [email], onDelete: Cascade)
+
+  @@index([email, verified, expiresAt])
 }
 
 model Consultant {
