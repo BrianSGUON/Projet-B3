@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import WeekTimesheetGrid from '@/components/WeekTimesheetGrid'
 
 type Timesheet = {
   id: string
@@ -33,6 +34,7 @@ function colorForClient(id: string) {
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
 export default function AgendaPage() {
+  const [view, setView] = useState<'month' | 'week'>('month')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [entries, setEntries] = useState<Timesheet[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -79,10 +81,26 @@ export default function AgendaPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Agenda</h1>
           <p className="text-gray-500 mt-0.5 text-sm">
-            {totalHours}h ce mois{selectedClientLabel ? ` pour ${selectedClientLabel.company ?? selectedClientLabel.name}` : ''}
+            {view === 'month'
+              ? `${totalHours}h ce mois${selectedClientLabel ? ` pour ${selectedClientLabel.company ?? selectedClientLabel.name}` : ''}`
+              : 'Vue hebdomadaire des heures par projet'}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-0.5 card p-1">
+            <button
+              onClick={() => setView('month')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'month' ? 'bg-violet-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            >
+              Mois
+            </button>
+            <button
+              onClick={() => setView('week')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'week' ? 'bg-violet-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            >
+              Semaine
+            </button>
+          </div>
           <select
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
             value={clientId}
@@ -91,14 +109,19 @@ export default function AgendaPage() {
             <option value="">Tous les clients</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.company ?? c.name}</option>)}
           </select>
-          <div className="flex items-center gap-1 card px-3 py-2">
-            <button onClick={() => { setCurrentMonth(m => subMonths(m, 1)); setSelectedDay(null) }} className="hover:text-violet-600 p-0.5"><ChevronLeft size={16} /></button>
-            <span className="text-xs sm:text-sm font-semibold w-[110px] sm:w-[130px] text-center capitalize">{format(currentMonth, 'MMMM yyyy', { locale: fr })}</span>
-            <button onClick={() => { setCurrentMonth(m => addMonths(m, 1)); setSelectedDay(null) }} className="hover:text-violet-600 p-0.5"><ChevronRight size={16} /></button>
-          </div>
+          {view === 'month' && (
+            <div className="flex items-center gap-1 card px-3 py-2">
+              <button onClick={() => { setCurrentMonth(m => subMonths(m, 1)); setSelectedDay(null) }} className="hover:text-violet-600 p-0.5"><ChevronLeft size={16} /></button>
+              <span className="text-xs sm:text-sm font-semibold w-[110px] sm:w-[130px] text-center capitalize">{format(currentMonth, 'MMMM yyyy', { locale: fr })}</span>
+              <button onClick={() => { setCurrentMonth(m => addMonths(m, 1)); setSelectedDay(null) }} className="hover:text-violet-600 p-0.5"><ChevronRight size={16} /></button>
+            </div>
+          )}
         </div>
       </div>
 
+      {view === 'week' ? (
+        <WeekTimesheetGrid clientId={clientId} />
+      ) : (
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-5">
         <div className="card overflow-hidden">
           <div className="grid grid-cols-7 border-b border-gray-100">
@@ -178,6 +201,7 @@ export default function AgendaPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   )
 }
