@@ -6,11 +6,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const consultantId = searchParams.get('consultantId')
     const projectId = searchParams.get('projectId')
+    const clientId = searchParams.get('clientId')
     const month = searchParams.get('month') // YYYY-MM
 
     const where: Record<string, unknown> = {}
     if (consultantId) where.consultantId = consultantId
     if (projectId) where.projectId = projectId
+    if (clientId) where.project = { clientId }
     if (month) {
       const [year, m] = month.split('-').map(Number)
       where.date = {

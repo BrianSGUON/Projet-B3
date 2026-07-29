@@ -8,6 +8,7 @@ const PROTECTED_PATHS = [
   '/clients',
   '/projects',
   '/timesheets',
+  '/agenda',
   '/invoices',
   '/rentabilite',
 ]
@@ -41,6 +42,7 @@ export const config = {
     '/clients/:path*',
     '/projects/:path*',
     '/timesheets/:path*',
+    '/agenda/:path*',
     '/invoices/:path*',
     '/rentabilite/:path*',
   ],
