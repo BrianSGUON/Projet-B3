@@ -4,6 +4,15 @@ import { prisma } from '@/lib/prisma'
 import { sendOTPEmail } from '@/lib/email'
 import { createOtpCode, generateOtpCode } from '@/lib/otp'
 
+function isPrismaUnavailable(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.message.includes('Environment variable not found') ||
+      error.message.includes('DATABASE_URL') ||
+      error.message.includes('PrismaClientInitializationError'))
+  )
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -54,6 +63,17 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Erreur lors de l’envoi du code OTP:', error)
+
+    if (isPrismaUnavailable(error)) {
+      return NextResponse.json(
+        {
+          error:
+            'La base de données n’est pas configurée. Vérifiez DATABASE_URL et la connexion Prisma.',
+        },
+        { status: 503 },
+      )
+    }
+
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 },
