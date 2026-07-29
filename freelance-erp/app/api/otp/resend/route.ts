@@ -21,8 +21,13 @@ export async function POST(request: NextRequest) {
     const emailResult = await sendOTPEmail(email, code)
 
     if (!emailResult.success) {
+      console.error('SMTP error:', emailResult.error)
       return NextResponse.json(
-        { error: 'Impossible d’envoyer le code par email' },
+        {
+          error: process.env.NODE_ENV !== 'production'
+            ? String(emailResult.error)
+            : 'Impossible d’envoyer le code par email',
+        },
         { status: 500 },
       )
     }
