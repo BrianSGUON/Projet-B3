@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signOut, useSession } from 'next-auth/react'
-import { LayoutDashboard, Users, Briefcase, Clock, FileText, Building2, Menu, X, LogOut, ChevronDown, Calculator } from 'lucide-react'
+import { LayoutDashboard, Users, Briefcase, Clock, FileText, Building2, Menu, X, LogOut, ChevronDown, Calculator, Mail } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -12,6 +12,7 @@ const nav = [
   { href: '/projects', label: 'Projets', icon: Briefcase },
   { href: '/timesheets', label: 'Timesheets', icon: Clock },
   { href: '/invoices', label: 'Factures', icon: FileText },
+  { href: '/messagerie', label: 'Messagerie', icon: Mail },
   { href: '/rentabilite', label: 'Rentabilité', icon: Calculator },
 ]
 
