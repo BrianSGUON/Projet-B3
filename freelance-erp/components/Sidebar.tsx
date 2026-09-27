@@ -13,6 +13,7 @@ const nav = [
   { href: '/timesheets', label: 'Timesheets', icon: Clock },
   { href: '/agenda', label: 'Agenda', icon: CalendarDays },
   { href: '/invoices', label: 'Factures', icon: FileText },
+  { href: '/messagerie', label: 'Messagerie', icon: Mail },
   { href: '/rentabilite', label: 'Rentabilité', icon: Calculator },
 ]
 

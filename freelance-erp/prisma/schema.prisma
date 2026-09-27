@@ -18,6 +18,9 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   otpCodes      OtpCode[]
+  conversationsAsUserA Conversation[] @relation("ConversationUserA")
+  conversationsAsUserB Conversation[] @relation("ConversationUserB")
+  sentMessages  Message[] @relation("MessageSender")
 }
 
 model OtpCode {
@@ -142,4 +145,45 @@ model InvoiceItem {
   unitPrice   Float
   invoiceId   String
   invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id           String   @id @default(cuid())
+  userAId      String
+  userBId      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userA        User     @relation("ConversationUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB        User     @relation("ConversationUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages     Message[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, userBId])
+}
+
+model Message {
+  id              String                @id @default(cuid())
+  conversationId  String
+  senderId        String
+  content         String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  isRead          Boolean               @default(false)
+
+  conversation    Conversation          @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender          User                  @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  attachments     MessageAttachment[]
+}
+
+model MessageAttachment {
+  id          String   @id @default(cuid())
+  messageId   String
+  fileName    String
+  filePath    String
+  mimeType    String
+  size        Int
+  createdAt   DateTime @default(now())
+
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
